@@ -6,10 +6,10 @@ Monorepo: /web (Next.js 15, App Router, TypeScript) + /api (Express, TypeScript)
 ## 2. Stack
 - Frontend: Next.js 15, TypeScript, Tailwind CSS
 - Backend: Express 5, TypeScript, Prisma ORM
-- Database: PostgreSQL (Docker khi dev, Railway khi deploy)
+- Database: PostgreSQL (Docker khi dev, Render + Neon khi deploy)
 - Auth: JWT lưu trong httpOnly cookie
 - AI: interface `AIProvider` dùng chung - implementation đầu tiên gọi model free (Gemini 2.5 Flash), implementation sau gọi Anthropic (Claude Haiku 3.5 / Sonnet)
-- Deploy: Vercel (web) + Railway (api + postgres)
+- Deploy: Vercel (web) + Render (api) + Neon (postgres)
 
 ## 3. Luồng dữ liệu chính (CV -> kết quả phân tích)
 1. Frontend upload file CV -> POST /api/cv (multipart/form-data)
