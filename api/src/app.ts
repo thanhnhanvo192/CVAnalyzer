@@ -5,6 +5,8 @@ import morgan from "morgan";
 import { errorHandler } from "./middleware/errorHandler";
 import { prisma } from "./lib/prisma";
 import { ApiError } from "./utils/ApiError";
+import authRoutes from "./routes/auth.routes";
+import cookieParser from "cookie-parser";
 
 const app = express();
 
@@ -38,6 +40,10 @@ app.get("/health/db", async (req, res) => {
 app.get("/test-error", () => {
   throw new ApiError(400, "TEST_ERROR", "Đây là lỗi test");
 });
+
+// auth routes
+app.use(cookieParser());
+app.use("/api/auth", authRoutes);
 
 // Error handler LUÔN đặt sau cùng, sau tất cả Routes
 app.use(errorHandler);
