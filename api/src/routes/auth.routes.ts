@@ -5,6 +5,7 @@ import { ApiError } from "../utils/ApiError";
 import { prisma } from "../lib/prisma";
 import { signToken } from "../utils/jwt";
 import { success } from "zod";
+import { AuthRequest, requireAuth } from "../middleware/requireAuth";
 
 
 const router = Router();
@@ -73,6 +74,18 @@ router.post("/login", async (req, res) => {
 router.post("/logout", (req, res) => {
   res.clearCookie(COOKIE_NAME);
   res.json({ success: true });
+});
+
+router.get("/me", requireAuth, async (req: AuthRequest, res) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.userId },
+    select: { id: true, email: true, name: true, createdAt: true },
+  });
+  if (!user) {
+    throw new ApiError(404, "USER_NOT_FOUND", "User không tồn tại");
+  }
+
+  res.json({ user });
 });
 
 export default router;
