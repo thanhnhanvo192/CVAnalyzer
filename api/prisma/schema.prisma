@@ -19,4 +19,26 @@ model User {
   name         String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime  @updatedAt
+  cvs          CV[]
+}
+
+// CV
+enum CvStatus {
+  PROCESSING
+  READY
+  FAILED
+}
+
+model CV {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileName     String
+  fileUrl      String
+  rawText      String   @db.Text
+  status       CvStatus @default(PROCESSING)
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
 }

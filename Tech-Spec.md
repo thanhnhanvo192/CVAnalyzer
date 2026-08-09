@@ -9,6 +9,7 @@ Monorepo: /web (Next.js 15, App Router, TypeScript) + /api (Express, TypeScript)
 - Database: PostgreSQL (Docker khi dev, Render + Neon khi deploy)
 - Auth: JWT lưu trong httpOnly cookie
 - AI: interface `AIProvider` dùng chung - implementation đầu tiên gọi model free (Gemini 2.5 Flash), implementation sau gọi Anthropic (Claude Haiku 3.5 / Sonnet)
+- Cloudinary: lưu trữ file CV, ảnh đại diện profile -> dùng image optimization
 - Deploy: Vercel (web) + Render (api) + Neon (postgres)
 
 ## 3. Luồng dữ liệu chính (CV -> kết quả phân tích)

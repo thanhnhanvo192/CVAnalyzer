@@ -13,7 +13,7 @@ Người tìm việc thường phải chỉnh sửa CV cho từng vị trí ứn
 
 ## 3. Tính năng MVP (bắt buộc có trong 8 tuần)
 - Đăng ký / Đăng nhập
-- Upload CV (PDF/DOCX) -> Parse thành text -> lưu vào database
+- CV: lưu cả file gốc (Cloudinary, qua `fileUrl`) và text đã parse (`rawText` trong DB) — text dùng cho AI phân tích, file gốc cho phép xem/tải lại.
 - Nhập/paste Job Description
 - Phân tích CV bằng AI: trích xuất kỹ năng, kinh nghiệm
 - So khớp CV với JD: điểm phù hợp + lý do + gợi ý cải thiện
