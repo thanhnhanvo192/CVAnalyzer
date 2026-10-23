@@ -20,37 +20,52 @@ import { Card } from "@/src/components/ui/Card";
 import { Badge } from "@/src/components/ui/Badge";
 import { DropzoneUpload } from "@/src/components/cv/DropzoneUpload";
 import { CvList } from "@/src/components/cv/CvList";
-import { getCvs, CVItem } from "@/src/lib/api";
+import { JdInputCard } from "@/src/components/jd/JdInputCard";
+import { JdList } from "@/src/components/jd/JdList";
+import { getCvs, getJobDescriptions, CVItem, JobDescriptionItem } from "@/src/lib/api";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [cvs, setCvs] = useState<CVItem[]>([]);
-  const [loadingCvs, setLoadingCvs] = useState(true);
-  const [showUploadBox, setShowUploadBox] = useState(false);
+  const [jds, setJds] = useState<JobDescriptionItem[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+
+  // Active view: 'all' | 'cv' | 'jd'
+  const [activeTab, setActiveTab] = useState<"overview" | "cv" | "jd">("overview");
 
   useEffect(() => {
-    async function fetchUserCvs() {
+    async function loadWorkspaceData() {
       try {
-        const data = await getCvs();
-        setCvs(data.cvs || []);
-      } catch {
-        // If unauthenticated or network error
+        const [cvRes, jdRes] = await Promise.all([
+          getCvs().catch(() => ({ cvs: [] })),
+          getJobDescriptions().catch(() => ({ jobDescriptions: [] })),
+        ]);
+        setCvs(cvRes.cvs || []);
+        setJds(jdRes.jobDescriptions || []);
       } finally {
-        setLoadingCvs(false);
+        setLoadingData(false);
       }
     }
 
     if (user) {
-      fetchUserCvs();
+      loadWorkspaceData();
     }
   }, [user]);
 
-  const handleUploadSuccess = (newCv: CVItem) => {
+  const handleCvUploadSuccess = (newCv: CVItem) => {
     setCvs((prev) => [newCv, ...prev]);
   };
 
-  const handleDeleteSuccess = (deletedId: string) => {
+  const handleCvDeleteSuccess = (deletedId: string) => {
     setCvs((prev) => prev.filter((item) => item.id !== deletedId));
+  };
+
+  const handleJdSuccess = (newJd: JobDescriptionItem) => {
+    setJds((prev) => [newJd, ...prev]);
+  };
+
+  const handleJdDeleteSuccess = (deletedId: string) => {
+    setJds((prev) => prev.filter((item) => item.id !== deletedId));
   };
 
   return (
@@ -67,7 +82,7 @@ export default function DashboardPage() {
               Xin chào, {user?.name || user?.email?.split("@")[0]}! 👋
             </h1>
             <p className="text-sm text-slate-300 leading-relaxed">
-              Sẵn sàng tối ưu hồ sơ cho đợt ứng tuyển tiếp theo? Tải lên CV của bạn và dán JD mục tiêu để AI bắt đầu so khớp ngay lập tức.
+              Quản lý hồ sơ CV và các bản mô tả công việc (JD) mục tiêu của bạn. Chuẩn bị so khớp thông minh bằng AI.
             </p>
           </div>
           <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -75,180 +90,242 @@ export default function DashboardPage() {
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          <Card className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
-              <FileText className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="text-2xl font-black text-white">
-                {loadingCvs ? "--" : cvs.length}
+          <div onClick={() => setActiveTab("cv")} className="cursor-pointer">
+            <Card className="flex items-center gap-4 hover:border-blue-500/60 transition-colors">
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+                <FileText className="w-6 h-6" />
               </div>
-              <div className="text-xs text-slate-400 font-medium">CV đã lưu trữ</div>
-            </div>
-          </Card>
-
-          <Card className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
-              <Target className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="text-2xl font-black text-white">0</div>
-              <div className="text-xs text-slate-400 font-medium">Job Description đã lưu</div>
-            </div>
-          </Card>
-
-          <Card className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
-              <Sparkles className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="text-2xl font-black text-white">-- %</div>
-              <div className="text-xs text-slate-400 font-medium">Điểm khớp trung bình</div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Action Modules */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold text-white tracking-tight">
-            Thao tác nhanh
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Step 1: Upload CV */}
-            <div
-              onClick={() => setShowUploadBox((v) => !v)}
-              className="cursor-pointer"
-            >
-              <Card
-                className={`group relative flex flex-col justify-between h-full transition-all ${
-                  showUploadBox
-                    ? "border-blue-500 ring-2 ring-blue-500/20 bg-blue-950/20"
-                    : "hover:border-blue-500/50"
-                }`}
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
-                      <UploadCloud className="w-5 h-5" />
-                    </div>
-                    <Badge variant={showUploadBox ? "info" : "neutral"} size="sm">
-                      {showUploadBox ? "Đang mở" : "Bước 1"}
-                    </Badge>
-                  </div>
-                  <h3 className="text-base font-bold text-white group-hover:text-blue-400 transition-colors">
-                    Tải lên CV (PDF / DOCX)
-                  </h3>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Tải file CV bản mới nhất lên hệ thống để AI tự động bóc tách kỹ năng, kinh nghiệm và dự án.
-                  </p>
+              <div>
+                <div className="text-2xl font-black text-white">
+                  {loadingData ? "--" : cvs.length}
                 </div>
-                <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center text-xs text-blue-400 font-semibold group-hover:translate-x-1 transition-transform">
-                  <span>{showUploadBox ? "Ẩn khung tải lên" : "Bắt đầu tải lên"}</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                </div>
-              </Card>
-            </div>
-
-            {/* Step 2: Paste JD */}
-            <Card className="group relative flex flex-col justify-between hover:border-indigo-500/50 opacity-90">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
-                    <Target className="w-5 h-5" />
-                  </div>
-                  <Badge variant="neutral" size="sm">
-                    Bước 2 (Phase 3)
-                  </Badge>
-                </div>
-                <h3 className="text-base font-bold text-white group-hover:text-indigo-400 transition-colors">
-                  Dán Job Description
-                </h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Dán nội dung yêu cầu công việc mục tiêu để AI xác định từ khóa cốt lõi và tiêu chí đánh giá.
-                </p>
-              </div>
-              <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center text-xs text-indigo-400 font-semibold group-hover:translate-x-1 transition-transform">
-                <span>Nhập mô tả việc làm</span>
-                <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                <div className="text-xs text-slate-400 font-medium">CV đã lưu trữ</div>
               </div>
             </Card>
+          </div>
 
-            {/* Step 3: Match */}
-            <Card className="group relative flex flex-col justify-between hover:border-purple-500/50 opacity-90">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
-                    <Zap className="w-5 h-5" />
-                  </div>
-                  <Badge variant="neutral" size="sm">
-                    Bước 3 (Phase 4)
-                  </Badge>
-                </div>
-                <h3 className="text-base font-bold text-white group-hover:text-purple-400 transition-colors">
-                  So khớp & Chấm điểm
-                </h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Chạy AI Engine để nhận báo cáo đối chiếu, bảng điểm ATS và danh sách các gợi ý sửa đổi.
-                </p>
+          <div onClick={() => setActiveTab("jd")} className="cursor-pointer">
+            <Card className="flex items-center gap-4 hover:border-indigo-500/60 transition-colors">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                <Target className="w-6 h-6" />
               </div>
-              <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center text-xs text-purple-400 font-semibold group-hover:translate-x-1 transition-transform">
-                <span>Xem phân tích AI</span>
-                <ArrowRight className="w-3.5 h-3.5 ml-1" />
+              <div>
+                <div className="text-2xl font-black text-white">
+                  {loadingData ? "--" : jds.length}
+                </div>
+                <div className="text-xs text-slate-400 font-medium">Job Description đã lưu</div>
+              </div>
+            </Card>
+          </div>
+
+          <div>
+            <Card className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-2xl font-black text-white">-- %</div>
+                <div className="text-xs text-slate-400 font-medium">Điểm khớp trung bình</div>
               </div>
             </Card>
           </div>
         </div>
 
-        {/* Upload Box (Collapsible or Promoted) */}
-        {(showUploadBox || cvs.length === 0) && (
-          <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                <UploadCloud className="w-5 h-5 text-indigo-400" />
-                <span>Khu vực tải lên CV mới</span>
+        {/* Navigation Tabs */}
+        <div className="flex items-center gap-3 border-b border-slate-800 pb-2">
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+              activeTab === "overview"
+                ? "bg-slate-800 text-white shadow-sm"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            Tổng quan (Quy trình)
+          </button>
+          <button
+            onClick={() => setActiveTab("cv")}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === "cv"
+                ? "bg-blue-600/20 text-blue-300 border border-blue-500/30"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            <span>Hồ sơ CV ({cvs.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("jd")}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === "jd"
+                ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <Target className="w-4 h-4" />
+            <span>Job Description ({jds.length})</span>
+          </button>
+        </div>
+
+        {/* Tab 1: Overview Flow */}
+        {activeTab === "overview" && (
+          <div className="space-y-8 animate-in fade-in duration-200">
+            {/* Step Action Cards */}
+            <div className="space-y-4">
+              <h2 className="text-lg font-bold text-white tracking-tight">
+                Quy trình chuẩn bị phân tích
               </h2>
-              {cvs.length > 0 && (
-                <button
-                  onClick={() => setShowUploadBox(false)}
-                  className="text-xs text-slate-400 hover:text-white"
-                >
-                  Thu gọn
-                </button>
-              )}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Step 1: Upload CV */}
+                <div onClick={() => setActiveTab("cv")} className="cursor-pointer">
+                  <Card className="group relative flex flex-col justify-between h-full hover:border-blue-500/50">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                          <UploadCloud className="w-5 h-5" />
+                        </div>
+                        <Badge variant={cvs.length > 0 ? "success" : "info"} size="sm">
+                          {cvs.length > 0 ? `Đã có (${cvs.length})` : "Bước 1"}
+                        </Badge>
+                      </div>
+                      <h3 className="text-base font-bold text-white group-hover:text-blue-400 transition-colors">
+                        1. Tải lên CV (PDF / DOCX)
+                      </h3>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        Tải file CV để hệ thống bóc tách kinh nghiệm, kỹ năng và lưu trữ an toàn.
+                      </p>
+                    </div>
+                    <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center text-xs text-blue-400 font-semibold group-hover:translate-x-1 transition-transform">
+                      <span>Quản lý CV</span>
+                      <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Step 2: Paste JD */}
+                <div onClick={() => setActiveTab("jd")} className="cursor-pointer">
+                  <Card className="group relative flex flex-col justify-between h-full hover:border-indigo-500/50">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+                          <Target className="w-5 h-5" />
+                        </div>
+                        <Badge variant={jds.length > 0 ? "success" : "info"} size="sm">
+                          {jds.length > 0 ? `Đã có (${jds.length})` : "Bước 2"}
+                        </Badge>
+                      </div>
+                      <h3 className="text-base font-bold text-white group-hover:text-indigo-400 transition-colors">
+                        2. Nhập Job Description (JD)
+                      </h3>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        Dán yêu cầu tuyển dụng mục tiêu từ LinkedIn, TopCV, ITviec để đối chiếu.
+                      </p>
+                    </div>
+                    <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center text-xs text-indigo-400 font-semibold group-hover:translate-x-1 transition-transform">
+                      <span>Quản lý JD</span>
+                      <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Step 3: Match */}
+                <div>
+                  <Card className="group relative flex flex-col justify-between h-full hover:border-purple-500/50">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                          <Zap className="w-5 h-5" />
+                        </div>
+                        <Badge variant="neutral" size="sm">
+                          Bước 3 (Phase 4)
+                        </Badge>
+                      </div>
+                      <h3 className="text-base font-bold text-white group-hover:text-purple-400 transition-colors">
+                        3. AI So khớp & Chấm điểm
+                      </h3>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        Chạy Gemini 2.5 Flash để đối chiếu chi tiết, phát hiện lỗ hổng kỹ năng và gợi ý chỉnh sửa.
+                      </p>
+                    </div>
+                    <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center text-xs text-purple-400 font-semibold">
+                      <span>Chuẩn bị trong Phase 4</span>
+                      <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                    </div>
+                  </Card>
+                </div>
+              </div>
             </div>
 
-            <Card className="p-6">
-              <DropzoneUpload onUploadSuccess={handleUploadSuccess} />
-            </Card>
+            {/* Quick Preview of both CV & JD */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-blue-400" />
+                    <span>CV gần đây ({cvs.length})</span>
+                  </h3>
+                  <button
+                    onClick={() => setActiveTab("cv")}
+                    className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+                  >
+                    Xem tất cả & Tải lên
+                  </button>
+                </div>
+                {cvs.length > 0 ? (
+                  <CvList cvs={cvs.slice(0, 2)} onDeleteSuccess={handleCvDeleteSuccess} />
+                ) : (
+                  <Card className="text-center py-8 text-xs text-slate-400">
+                    Chưa có CV nào. Bấm vào tab "Hồ sơ CV" để tải lên!
+                  </Card>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Target className="w-4 h-4 text-indigo-400" />
+                    <span>Job Description gần đây ({jds.length})</span>
+                  </h3>
+                  <button
+                    onClick={() => setActiveTab("jd")}
+                    className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+                  >
+                    Xem tất cả & Thêm mới
+                  </button>
+                </div>
+                {jds.length > 0 ? (
+                  <JdList jds={jds.slice(0, 2)} onDeleteSuccess={handleJdDeleteSuccess} />
+                ) : (
+                  <Card className="text-center py-8 text-xs text-slate-400">
+                    Chưa có JD nào. Bấm vào tab "Job Description" để dán JD!
+                  </Card>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
-        {/* User's CVs List */}
-        <div className="space-y-4">
-          <CvList cvs={cvs} onDeleteSuccess={handleDeleteSuccess} />
-        </div>
+        {/* Tab 2: CV Management */}
+        {activeTab === "cv" && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <Card className="p-6 sm:p-8">
+              <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                <UploadCloud className="w-5 h-5 text-blue-400" />
+                <span>Tải lên CV mới</span>
+              </h2>
+              <DropzoneUpload onUploadSuccess={handleCvUploadSuccess} />
+            </Card>
 
-        {/* Empty State when no CVs */}
-        {!loadingCvs && cvs.length === 0 && !showUploadBox && (
-          <Card className="text-center py-12 px-4 border-dashed border-slate-800">
-            <div className="w-16 h-16 rounded-3xl bg-slate-800/60 text-slate-400 flex items-center justify-center mx-auto mb-4 border border-slate-700/60">
-              <History className="w-8 h-8" />
-            </div>
-            <h3 className="text-base font-bold text-white mb-1">
-              Chưa có file CV nào được lưu
-            </h3>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto mb-6 leading-relaxed">
-              Hãy tải lên bản CV mới nhất của bạn (PDF hoặc DOCX) để hệ thống tự động bóc tách kỹ năng!
-            </p>
-            <Button
-              variant="primary"
-              size="md"
-              onClick={() => setShowUploadBox(true)}
-              icon={<UploadCloud className="w-4 h-4" />}
-            >
-              Tải lên CV ngay
-            </Button>
-          </Card>
+            <CvList cvs={cvs} onDeleteSuccess={handleCvDeleteSuccess} />
+          </div>
+        )}
+
+        {/* Tab 3: JD Management */}
+        {activeTab === "jd" && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <JdInputCard onSuccess={handleJdSuccess} />
+            <JdList jds={jds} onDeleteSuccess={handleJdDeleteSuccess} />
+          </div>
         )}
       </main>
     </ProtectedRoute>

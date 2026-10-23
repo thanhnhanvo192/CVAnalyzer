@@ -7,6 +7,7 @@ import { prisma } from "./lib/prisma";
 import { ApiError } from "./utils/ApiError";
 import authRoutes from "./routes/auth.routes";
 import cvRoutes from "./routes/cv.routes";
+import jdRoutes from "./routes/jd.routes";
 import cookieParser from "cookie-parser";
 import path from "path";
 
@@ -48,10 +49,11 @@ app.get("/test-error", () => {
   throw new ApiError(400, "TEST_ERROR", "Đây là lỗi test");
 });
 
-// auth routes
+// Routes
 app.use(cookieParser());
 app.use("/api/auth", authRoutes);
 app.use("/api/cv", cvRoutes);
+app.use("/api/job-descriptions", jdRoutes);
 
 // Error handler LUÔN đặt sau cùng, sau tất cả Routes
 app.use(errorHandler);

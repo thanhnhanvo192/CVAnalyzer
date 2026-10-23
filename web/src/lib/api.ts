@@ -75,3 +75,42 @@ export async function deleteCv(id: string): Promise<{ success: boolean }> {
     method: "DELETE",
   });
 }
+
+// Job Description API helpers
+export interface JobDescriptionItem {
+  id: string;
+  title?: string | null;
+  company?: string | null;
+  rawText: string;
+  createdAt: string;
+}
+
+export async function createJobDescription(data: {
+  rawText: string;
+  title?: string;
+  company?: string;
+}): Promise<{ jobDescription: JobDescriptionItem }> {
+  return apiFetch<{ jobDescription: JobDescriptionItem }>(
+    "/api/job-descriptions",
+    {
+      method: "POST",
+      body: JSON.stringify(data),
+    }
+  );
+}
+
+export async function getJobDescriptions(): Promise<{
+  jobDescriptions: JobDescriptionItem[];
+}> {
+  return apiFetch<{ jobDescriptions: JobDescriptionItem[] }>(
+    "/api/job-descriptions"
+  );
+}
+
+export async function deleteJobDescription(
+  id: string
+): Promise<{ success: boolean }> {
+  return apiFetch<{ success: boolean }>(`/api/job-descriptions/${id}`, {
+    method: "DELETE",
+  });
+}
