@@ -22,7 +22,7 @@ router.post("/register", async (req, res) => {
   const parsed = registerSchema.safeParse(req.body);
 
   if (!parsed.success) {
-    throw new ApiError(400, "VALIDATION_ERROR", parsed.error.errors[0].message);
+    throw new ApiError(400, "VALIDATION_ERROR", parsed.error.issues[0].message);
   }
   const { email, password, name } = parsed.data;
 
@@ -49,7 +49,7 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
-    throw new ApiError(400, "VALIDATION_ERROR", parsed.error.errors[0].message);
+    throw new ApiError(400, "VALIDATION_ERROR", parsed.error.issues[0].message);
   }
 
   const { email, password } = parsed.data;

@@ -1,10 +1,17 @@
 {
   "name": "cv-analyzer",
   "version": "1.0.0",
-  "description": "",
+  "description": "Smart CV Analyzer & Job Match",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev:web": "npm --prefix web run dev",
+    "dev:api": "npm --prefix api run dev",
+    "build:web": "npm --prefix web run build",
+    "build:api": "npm --prefix api run build",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "prisma:generate": "npx --prefix api prisma generate",
+    "prisma:migrate": "npx --prefix api prisma migrate dev"
   },
   "keywords": [],
   "author": "",
