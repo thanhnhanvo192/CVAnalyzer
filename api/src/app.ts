@@ -8,6 +8,7 @@ import { ApiError } from "./utils/ApiError";
 import authRoutes from "./routes/auth.routes";
 import cvRoutes from "./routes/cv.routes";
 import jdRoutes from "./routes/jd.routes";
+import matchRoutes from "./routes/match.routes";
 import cookieParser from "cookie-parser";
 import path from "path";
 
@@ -54,6 +55,7 @@ app.use(cookieParser());
 app.use("/api/auth", authRoutes);
 app.use("/api/cv", cvRoutes);
 app.use("/api/job-descriptions", jdRoutes);
+app.use("/api/match", matchRoutes);
 
 // Error handler LUÔN đặt sau cùng, sau tất cả Routes
 app.use(errorHandler);

@@ -114,3 +114,68 @@ export async function deleteJobDescription(
     method: "DELETE",
   });
 }
+
+// AI Match API helpers
+export interface MatchedSkill {
+  skill: string;
+  evidence: string;
+}
+
+export interface MissingSkill {
+  skill: string;
+  importance: "HIGH" | "MEDIUM" | "LOW";
+  reason: string;
+}
+
+export interface MatchResultItem {
+  id: string;
+  cvId: string;
+  jobDescriptionId: string;
+  overallScore: number;
+  summary: string;
+  matchedSkills: MatchedSkill[];
+  missingSkills: MissingSkill[];
+  recommendations: string[];
+  createdAt: string;
+  cv?: {
+    id: string;
+    fileName: string;
+    fileUrl?: string;
+  };
+  jobDescription?: {
+    id: string;
+    title?: string | null;
+    company?: string | null;
+    rawText?: string;
+  };
+}
+
+export async function runCvMatch(
+  cvId: string,
+  jdId: string
+): Promise<{ matchResult: MatchResultItem }> {
+  return apiFetch<{ matchResult: MatchResultItem }>("/api/match", {
+    method: "POST",
+    body: JSON.stringify({ cvId, jdId }),
+  });
+}
+
+export async function getMatchResults(): Promise<{
+  matchResults: MatchResultItem[];
+}> {
+  return apiFetch<{ matchResults: MatchResultItem[] }>("/api/match");
+}
+
+export async function getMatchResult(
+  id: string
+): Promise<{ matchResult: MatchResultItem }> {
+  return apiFetch<{ matchResult: MatchResultItem }>(`/api/match/${id}`);
+}
+
+export async function deleteMatchResult(
+  id: string
+): Promise<{ success: boolean }> {
+  return apiFetch<{ success: boolean }>(`/api/match/${id}`, {
+    method: "DELETE",
+  });
+}

@@ -19,6 +19,7 @@ model User {
   updatedAt       DateTime         @updatedAt
   cvs             CV[]
   jobDescriptions JobDescription[]
+  matchResults    MatchResult[]
 }
 
 // CV
@@ -29,29 +30,54 @@ enum CvStatus {
 }
 
 model CV {
-  id           String   @id @default(cuid())
+  id           String        @id @default(cuid())
   userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   fileName     String
   fileUrl      String
-  rawText      String   @db.Text
-  status       CvStatus @default(PROCESSING)
+  rawText      String        @db.Text
+  status       CvStatus      @default(PROCESSING)
   errorMessage String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime      @default(now())
+  matchResults MatchResult[]
 
   @@index([userId])
 }
 
 // Job Description
 model JobDescription {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title     String?
-  company   String?
-  rawText   String   @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String?
+  company      String?
+  rawText      String        @db.Text
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  matchResults MatchResult[]
 
   @@index([userId])
+}
+
+// AI Match Result
+model MatchResult {
+  id               String         @id @default(cuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cvId             String
+  cv               CV             @relation(fields: [cvId], references: [id], onDelete: Cascade)
+  jobDescriptionId String
+  jobDescription   JobDescription @relation(fields: [jobDescriptionId], references: [id], onDelete: Cascade)
+
+  overallScore     Int
+  summary          String         @db.Text
+  matchedSkills    Json           // Array of { skill: string, evidence: string }
+  missingSkills    Json           // Array of { skill: string, importance: "HIGH"|"MEDIUM"|"LOW", reason: string }
+  recommendations  Json           // Array of strings
+
+  createdAt        DateTime       @default(now())
+
+  @@index([userId])
+  @@index([cvId])
+  @@index([jobDescriptionId])
 }
