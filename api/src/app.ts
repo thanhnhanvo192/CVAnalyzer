@@ -6,12 +6,16 @@ import { errorHandler } from "./middleware/errorHandler";
 import { prisma } from "./lib/prisma";
 import { ApiError } from "./utils/ApiError";
 import authRoutes from "./routes/auth.routes";
+import cvRoutes from "./routes/cv.routes";
 import cookieParser from "cookie-parser";
+import path from "path";
 
 const app = express();
 
 // Security headers
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: false, // Allows cross-origin for static files like uploaded CVs
+}));
 
 // CORS - chỉ cho phép frontend gọi vào, siết lại thay vì mở toàn bộ
 app.use(
@@ -25,6 +29,9 @@ app.use(
 app.use(morgan("dev"));
 
 app.use(express.json());
+
+// Serve uploaded CV files locally when Cloudinary is not used
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Routes
 app.get("/health", (req, res) => {
@@ -44,6 +51,7 @@ app.get("/test-error", () => {
 // auth routes
 app.use(cookieParser());
 app.use("/api/auth", authRoutes);
+app.use("/api/cv", cvRoutes);
 
 // Error handler LUÔN đặt sau cùng, sau tất cả Routes
 app.use(errorHandler);
