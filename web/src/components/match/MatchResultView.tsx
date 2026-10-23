@@ -46,6 +46,8 @@ export function MatchResultView({ result, onBack }: MatchResultViewProps) {
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
+  const [copiedFull, setCopiedFull] = useState(false);
+
   const handleCopyRecommendations = () => {
     const text = result.recommendations.map((r, i) => `${i + 1}. ${r}`).join("\n");
     navigator.clipboard.writeText(text);
@@ -53,9 +55,33 @@ export function MatchResultView({ result, onBack }: MatchResultViewProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleCopyFullReport = () => {
+    const md = `# BÁO CÁO PHÂN TÍCH SO KHỚP CV & JD
+- Vị trí: ${result.jobDescription?.title || "Vị trí tuyển dụng"} ${result.jobDescription?.company ? `(${result.jobDescription.company})` : ""}
+- File CV: ${result.cv?.fileName || "CV"}
+- Điểm phù hợp: ${result.overallScore}% (${verdict.label})
+- Ngày phân tích: ${new Date(result.createdAt).toLocaleString("vi-VN")}
+
+## 1. Đánh giá tổng quan
+${result.summary}
+
+## 2. Kỹ năng đáp ứng tốt (${result.matchedSkills.length})
+${result.matchedSkills.map((s) => `- **${s.skill}**: ${s.evidence}`).join("\n")}
+
+## 3. Kỹ năng còn thiếu hoặc cần làm rõ (${result.missingSkills.length})
+${result.missingSkills.map((s) => `- **${s.skill}** [${s.importance}]: ${s.reason}`).join("\n")}
+
+## 4. Đề xuất cải thiện CV chuẩn ATS
+${result.recommendations.map((r, i) => `${i + 1}. ${r}`).join("\n")}
+`;
+    navigator.clipboard.writeText(md);
+    setCopiedFull(true);
+    setTimeout(() => setCopiedFull(false), 2000);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Header bar with Back button */}
+      {/* Header bar with Back button and Copy Full Report */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-xs font-semibold mb-1">
@@ -67,11 +93,22 @@ export function MatchResultView({ result, onBack }: MatchResultViewProps) {
           </h2>
         </div>
 
-        {onBack && (
-          <Button variant="outline" size="sm" onClick={onBack}>
-            ← Quay lại chọn CV khác
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleCopyFullReport}
+            className="text-xs"
+          >
+            {copiedFull ? "✓ Đã copy báo cáo MD!" : "Sao chép toàn bộ báo cáo"}
           </Button>
-        )}
+
+          {onBack && (
+            <Button variant="outline" size="sm" onClick={onBack}>
+              ← Quay lại
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Target & Candidate Summary Card */}

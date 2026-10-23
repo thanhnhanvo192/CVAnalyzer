@@ -24,6 +24,7 @@ import { JdInputCard } from "@/src/components/jd/JdInputCard";
 import { JdList } from "@/src/components/jd/JdList";
 import { MatchLauncher } from "@/src/components/match/MatchLauncher";
 import { MatchResultView } from "@/src/components/match/MatchResultView";
+import { MatchHistoryView } from "@/src/components/match/MatchHistoryView";
 import {
   getCvs,
   getJobDescriptions,
@@ -40,8 +41,8 @@ export default function DashboardPage() {
   const [matchResults, setMatchResults] = useState<MatchResultItem[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
-  // Active view: 'overview' | 'cv' | 'jd' | 'match'
-  const [activeTab, setActiveTab] = useState<"overview" | "cv" | "jd" | "match">("overview");
+  // Active view: 'overview' | 'cv' | 'jd' | 'match' | 'history'
+  const [activeTab, setActiveTab] = useState<"overview" | "cv" | "jd" | "match" | "history">("overview");
   const [activeResult, setActiveResult] = useState<MatchResultItem | null>(null);
 
   useEffect(() => {
@@ -87,6 +88,13 @@ export default function DashboardPage() {
     setActiveTab("match");
   };
 
+  const handleMatchDeleteSuccess = (deletedId: string) => {
+    setMatchResults((prev) => prev.filter((item) => item.id !== deletedId));
+    if (activeResult?.id === deletedId) {
+      setActiveResult(null);
+    }
+  };
+
   // Compute average score
   const avgScore =
     matchResults.length > 0
@@ -101,16 +109,16 @@ export default function DashboardPage() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-8">
         {/* Welcome Banner */}
         <div className="relative rounded-3xl p-8 bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-purple-900/20 border border-indigo-500/30 overflow-hidden">
-          <div className="relative z-10 max-w-2xl space-y-3">
+          <div className="relative z-10 max-w-3xl space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-semibold">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>AI Career Workspace</span>
+              <span>AI Career Workspace • Gemini 2.5 Flash</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
               Xin chào, {user?.name || user?.email?.split("@")[0]}! 👋
             </h1>
             <p className="text-sm text-slate-300 leading-relaxed">
-              Quản lý hồ sơ CV, Job Description và phân tích so khớp thông minh bằng Gemini 2.5 Flash.
+              Hệ thống đã sẵn sàng hỗ trợ bạn bóc tách CV, quản lý Job Description và chấm điểm mức độ phù hợp bằng AI theo chuẩn ATS.
             </p>
           </div>
           <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -118,7 +126,7 @@ export default function DashboardPage() {
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          <div onClick={() => setActiveTab("cv")} className="cursor-pointer">
+          <div onClick={() => { setActiveResult(null); setActiveTab("cv"); }} className="cursor-pointer">
             <Card className="flex items-center gap-4 hover:border-blue-500/60 transition-colors">
               <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
                 <FileText className="w-6 h-6" />
@@ -132,7 +140,7 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          <div onClick={() => setActiveTab("jd")} className="cursor-pointer">
+          <div onClick={() => { setActiveResult(null); setActiveTab("jd"); }} className="cursor-pointer">
             <Card className="flex items-center gap-4 hover:border-indigo-500/60 transition-colors">
               <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
                 <Target className="w-6 h-6" />
@@ -146,7 +154,7 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          <div onClick={() => setActiveTab("match")} className="cursor-pointer">
+          <div onClick={() => { setActiveResult(null); setActiveTab("history"); }} className="cursor-pointer">
             <Card className="flex items-center gap-4 hover:border-emerald-500/60 transition-colors">
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
                 <Sparkles className="w-6 h-6" />
@@ -219,6 +227,21 @@ export default function DashboardPage() {
           >
             <Zap className="w-4 h-4 text-purple-400" />
             <span>So khớp AI</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveResult(null);
+              setActiveTab("history");
+            }}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === "history" && !activeResult
+                ? "bg-emerald-600/20 text-emerald-300 border border-emerald-500/30"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <History className="w-4 h-4 text-emerald-400" />
+            <span>Lịch sử ({matchResults.length})</span>
           </button>
         </div>
 
@@ -398,62 +421,25 @@ export default function DashboardPage() {
                   jds={jds}
                   onMatchComplete={handleMatchComplete}
                 />
-
-                {/* Previous Match Results History */}
-                {matchResults.length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <History className="w-4 h-4 text-indigo-400" />
-                      <span>Các lần so khớp gần đây ({matchResults.length})</span>
-                    </h3>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {matchResults.map((m) => (
-                        <div
-                          key={m.id}
-                          onClick={() => setActiveResult(m)}
-                          className="glass-card rounded-2xl p-5 border border-slate-800 hover:border-indigo-500/50 cursor-pointer transition-all space-y-3 flex flex-col justify-between"
-                        >
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-slate-400">
-                                {new Date(m.createdAt).toLocaleDateString("vi-VN", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                })}
-                              </span>
-                              <Badge
-                                variant={
-                                  m.overallScore >= 80
-                                    ? "success"
-                                    : m.overallScore >= 60
-                                    ? "info"
-                                    : "warning"
-                                }
-                                size="sm"
-                              >
-                                {m.overallScore}% Match
-                              </Badge>
-                            </div>
-
-                            <h4 className="text-sm font-bold text-white line-clamp-1">
-                              {m.jobDescription?.title || "Vị trí tuyển dụng"}
-                            </h4>
-                            <p className="text-xs text-slate-400 line-clamp-1">
-                              File: {m.cv?.fileName || "CV"}
-                            </p>
-                          </div>
-
-                          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-indigo-400 font-semibold">
-                            <span>Xem chi tiết báo cáo</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 5: Dedicated Match History */}
+        {activeTab === "history" && (
+          <div className="space-y-8 animate-in fade-in duration-200">
+            {activeResult ? (
+              <MatchResultView
+                result={activeResult}
+                onBack={() => setActiveResult(null)}
+              />
+            ) : (
+              <MatchHistoryView
+                results={matchResults}
+                onSelectResult={(item) => setActiveResult(item)}
+                onDeleteSuccess={handleMatchDeleteSuccess}
+              />
             )}
           </div>
         )}
